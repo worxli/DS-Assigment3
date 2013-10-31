@@ -1,0 +1,109 @@
+package ch.ethz.inf.vs.android.lukabi.capitalize;
+
+import java.io.IOException;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.net.SocketException;
+
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
+import android.os.AsyncTask;
+import android.os.Bundle;
+import android.app.Activity;
+import android.content.Context;
+import android.util.Log;
+import android.view.Menu;
+import android.view.View;
+import android.view.View.OnClickListener;
+import android.widget.Button;
+import android.widget.EditText;
+import android.widget.TextView;
+
+public class MainActivity extends Activity {
+	
+	Button convert;
+	TextView uppercase;
+	EditText lowercase;
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+        
+        uppercase = (TextView) findViewById(R.id.uppercase);
+		convert = (Button) findViewById(R.id.convert);
+		lowercase = ((EditText) findViewById(R.id.lowercase));
+    }
+
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        // Inflate the menu; this adds items to the action bar if it is present.
+        getMenuInflater().inflate(R.menu.main, menu);
+        return true;
+    }
+    
+    
+	
+	/**
+	 * Buttonlisteners
+	 */
+	public void convert (View v) {	
+		Log.d("button","convert");
+		new Converter().execute(lowercase.getText().toString());
+	}
+	
+	/**
+	 * Write to GUI
+	 * @param result
+	 */
+	private void writeResult (String result) {
+		uppercase.setText(result);
+	}
+	
+	
+	
+	private class Converter extends AsyncTask<String, Void, String> {
+		
+		String uppercaseText;
+		int server_port = 4000;
+		
+		@Override
+		protected String doInBackground(String... lowercaseText) {
+			
+			//if(hasInternetConnection()){
+	
+				byte[] message = lowercaseText[0].getBytes();
+				DatagramPacket p = new DatagramPacket(message, message.length);
+				
+				
+				try {
+					DatagramSocket s = new DatagramSocket(server_port);
+					s.send(p);
+					s.receive(p);
+					s.close();
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+				
+				uppercaseText = new String(message, 0, p.getLength());
+				Log.d("Udp tutorial","message:" + uppercaseText);
+				
+				
+				writeResult(uppercaseText);
+			//}
+			
+			return null;
+		}
+		
+		/**
+		 * Checks that the device is connected to the internet
+		 */
+		private boolean hasInternetConnection () {
+			ConnectivityManager connMgr = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+			NetworkInfo networkInfo = connMgr.getActiveNetworkInfo();
+			return (networkInfo != null && networkInfo.isConnected());
+		}
+	}
+    
+}

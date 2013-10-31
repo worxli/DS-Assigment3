@@ -1,0 +1,80 @@
+package ch.ethz.inf.vs.android.lukabi.capitalize;
+
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
+import android.os.AsyncTask;
+import android.os.Bundle;
+import android.app.Activity;
+import android.content.Context;
+import android.util.Log;
+import android.view.Menu;
+import android.view.View;
+import android.widget.Button;
+import android.widget.TextView;
+
+public class MainActivity extends Activity {
+	
+	Button convert;
+	TextView uppercase;
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+        
+        uppercase = (TextView) findViewById(R.id.uppercase);
+		convert = (Button) findViewById(R.id.convert);
+    }
+
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        // Inflate the menu; this adds items to the action bar if it is present.
+        getMenuInflater().inflate(R.menu.main, menu);
+        return true;
+    }
+    
+    
+	
+	/**
+	 * Buttonlisteners
+	 */
+	public void convert (View v) {	
+		Log.d("button","convert");
+	}
+	
+	/**
+	 * Write to GUI
+	 * @param result
+	 */
+	private void writeResult (String result) {
+		uppercase.setText(result);
+	}
+	
+	
+	
+	private class Converter extends AsyncTask<String, Void, String> {
+
+		@Override
+		protected String doInBackground(String... arg0) {
+			
+			if(hasInternetConnection()){
+				
+				
+				writeResult("");
+			}
+			
+			return null;
+		}
+		
+		/**
+		 * Checks that the device is connected to the internet
+		 */
+		private boolean hasInternetConnection () {
+			ConnectivityManager connMgr = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+			NetworkInfo networkInfo = connMgr.getActiveNetworkInfo();
+			return (networkInfo != null && networkInfo.isConnected());
+		}
+	}
+    
+}

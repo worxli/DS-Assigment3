@@ -1,0 +1,92 @@
+package ch.ethz.inf.vs.android.lukabi.capitalize;
+
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.net.InetAddress;
+
+import android.os.AsyncTask;
+import android.os.Bundle;
+import android.app.Activity;
+import android.view.View;
+import android.widget.Button;
+import android.widget.EditText;
+import android.widget.TextView;
+
+public class MainActivity extends Activity {
+	
+	Button convert;
+	TextView uppercase;
+	EditText lowercase;
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+        
+        uppercase = (TextView) findViewById(R.id.uppercase);
+		convert = (Button) findViewById(R.id.convert);
+		lowercase = ((EditText) findViewById(R.id.lowercase));
+    }    
+	
+	/**
+	 * Buttonlistener
+	 */
+	public void convert (View v) {	
+		new Converter().execute(lowercase.getText().toString());
+	}
+	
+	/**
+	 * Write to GUI
+	 */
+	private void writeResult (String result) {
+		uppercase.setText(result);
+	}
+
+	private class Converter extends AsyncTask<String, Void, String> {
+		
+		String uppercaseText;
+		int server_port = 4000;
+		int client_port = 0;
+		
+		@Override
+		protected String doInBackground(String... lowercaseText) {
+
+			//create message and local datagram
+			byte[] message = lowercaseText[0].getBytes();
+			DatagramPacket r = new DatagramPacket(message, message.length);
+			
+			try {
+				//get server inetaddress
+				InetAddress serverAddr = InetAddress.getByName("vslab.inf.ethz.ch");
+				
+				//create datagram and socket for sending
+				DatagramPacket p = new DatagramPacket(message, message.length, serverAddr, server_port);
+				DatagramSocket s = new DatagramSocket(client_port);
+				
+				//send datagram
+				s.send(p);
+				
+				//receive datagram
+				s.receive(r);
+				
+				//close socket
+				s.close();
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+			
+			//get String from datagram
+			uppercaseText = new String(message, 0, r.getLength());
+			
+			return null;
+		}
+		
+		@Override
+		protected void onPostExecute(String result) {
+			super.onPostExecute(result);
+			
+			//write result to view
+			writeResult(uppercaseText);
+		}
+	}
+}
