@@ -9,22 +9,21 @@
     android:paddingRight="@dimen/activity_horizontal_margin"
     android:paddingTop="@dimen/activity_vertical_margin"
     tools:context=".MainActivity" >
-
-    <EditText
-        android:id="@+id/ipt_name"
+	
+    <Spinner
+        android:id="@+id/spnr_name"
         android:layout_width="0dp"
         android:layout_height="40dp"
         android:layout_alignParentLeft="true"
-        android:layout_toLeftOf="@+id/btn_register"
-        android:hint="@string/hint_name"
-        android:ems="10" />
+        android:layout_toLeftOf="@+id/btn_register" />
 
     <Button
         android:id="@+id/btn_register"
-        android:layout_width="100dp"
+        android:layout_width="120dp"
         android:layout_height="40dp"
         android:layout_alignParentRight="true"
-        android:text="@string/register" />
+        android:text="@string/register"
+        android:onClick="onRegisterClick" />
 
     <TextView
         android:id="@+id/txt_chat"
@@ -33,13 +32,14 @@
         android:layout_above="@+id/btn_send"
         android:layout_alignParentLeft="true"
         android:layout_alignParentRight="true"
-        android:layout_below="@+id/ipt_name"
+        android:layout_below="@+id/spnr_name"
         android:layout_marginBottom="10dp"
         android:layout_marginTop="10dp"
         android:layout_toRightOf="@+id/btn_register"
         android:text="" />
 
     <EditText
+        android:enabled="false"
         android:id="@+id/ipt_message"
         android:layout_width="0dp"
         android:layout_height="40dp"
@@ -50,8 +50,9 @@
         android:hint="@string/hint_message" />
 
     <Button
+        android:enabled="false"
         android:id="@+id/btn_send"
-        android:layout_width="100dp"
+        android:layout_width="120dp"
         android:layout_height="40dp"
         android:layout_alignParentBottom="true"
         android:layout_alignParentRight="true"
