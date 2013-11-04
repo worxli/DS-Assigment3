@@ -4,5 +4,10 @@
     <string name="app_name">vs-lukasbi-lamport</string>
     <string name="action_settings">Settings</string>
     <string name="hello_world">Hello world!</string>
-
+	<string name="hint_name">enter your nickname</string>
+	<string name="hint_message">type a message</string>
+	<string name="register">Register</string>
+	<string name="unregister">Unregister</string>
+	<string name="send">Send</string>
+	
 </resources>
