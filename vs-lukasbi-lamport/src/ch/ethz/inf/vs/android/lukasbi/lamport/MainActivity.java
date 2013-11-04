@@ -7,6 +7,8 @@ import java.net.InetAddress;
 import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -31,13 +33,15 @@ public class MainActivity extends Activity {
 	private String nickname = null;
 	private int clientPort = 1250;
 	public final String DEBUG_TAG = "A3";
+	public int id = -1;
+	public int lamportTime = -1;
 	
 	/**
 	 * Server settings
 	 */
 	private final String serverAddress = "vslab.inf.ethz.ch";
 	private final int serverPort = 5000;
-	private final int timeout = 5000;
+	private final int timeout = 3000;
 	
 	/**
 	 * UI elements
@@ -86,6 +90,8 @@ public class MainActivity extends Activity {
 			} catch (IOException e) {
 				// server not responding
 				e.printStackTrace();
+			} catch (Exception e) {
+				appendChat(e.getMessage());
 			} finally {
 				/**
 				 * close socket here in the finally clause
@@ -103,7 +109,7 @@ public class MainActivity extends Activity {
 		@Override
 		protected void onPostExecute(String result) {
 			super.onPostExecute(result);
-			writeChat(result);
+			appendChat("[worker] : " + result);
 		}
 	}
 
@@ -141,8 +147,6 @@ public class MainActivity extends Activity {
 			// register mode
 			if (register.getText().toString().equals(getString(R.string.register))) {
 				nickname = name.getSelectedItem().toString();
-				register.setText(R.string.unregister);
-				name.setEnabled(false);
 				
 				// register to the server
 				JSONObject registerRequest = new JSONObject();
@@ -152,9 +156,23 @@ public class MainActivity extends Activity {
 				worker.execute(registerRequest.toString());
 
 				// we have to wait for the response (attention: this is blocking...)
-				String jsonResponse = worker.get();
-				writeChat(jsonResponse);
+				String response = worker.get(timeout, TimeUnit.MILLISECONDS);
 				
+				// there exists already a user with this name?
+				JSONObject jsonResponse = new JSONObject(response);
+				if (hasError(jsonResponse)) {
+					appendChat(jsonResponse.getString("text"));
+				} else {
+					// hide things ...
+					register.setText(R.string.unregister);
+					name.setEnabled(false);
+					
+					// get user id
+					id = jsonResponse.getInt("index");
+					
+					// get initial lamport timestamp
+					lamportTime = jsonResponse.getInt("init_lamport");
+				}
 			} else {
 				// unregister mode
 				register.setText(R.string.register);
@@ -171,10 +189,37 @@ public class MainActivity extends Activity {
 			e.printStackTrace();
 		} catch (JSONException e) {
 			e.printStackTrace();
+		} catch (TimeoutException e) {
+			appendChat(getText(R.string.server_timeout).toString());
+			e.printStackTrace();
+		} catch (Exception e) {
+			appendChat(e.getMessage());
 		}
 	}
 	
+	/**
+	 * internal functions
+	 */
 	public void writeChat (String text) {
 		chat.setText(text);
+	}
+	
+	public void appendChat (String text) {
+		String lineSep = System.getProperty("line.separator");
+		chat.append(text + lineSep);
+	}
+	
+	public boolean hasError (JSONObject obj) {
+		return obj.has("error");
+	}
+	
+	public String getMessageByTag (String tag) {
+		String value = null;
+		if (tag.equals("not_registered")) {
+			value = getString(R.string.not_registered);
+		} else if (tag.equals("already_registered")) {
+			value = getString(R.string.server_timeout);
+		}
+		return value;
 	}
 }

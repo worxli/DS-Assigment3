@@ -16,5 +16,8 @@
 	<string name="register">Register</string>
 	<string name="unregister">Unregister</string>
 	<string name="send">Send</string>
+	<string name="server_timeout">the server did not response in time...</string>
+	<string name="not_registered">register first with a nickname to send any messages</string>
+	<string name="already_registered">you are already registered</string>
 	
 </resources>

@@ -36,6 +36,8 @@
         android:layout_marginBottom="10dp"
         android:layout_marginTop="10dp"
         android:layout_toRightOf="@+id/btn_register"
+        android:gravity="bottom"
+        android:maxLines="50"
         android:text="" />
 
     <EditText
