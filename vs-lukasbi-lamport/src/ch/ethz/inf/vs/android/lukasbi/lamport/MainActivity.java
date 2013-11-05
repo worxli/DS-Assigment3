@@ -16,7 +16,8 @@ import org.json.JSONObject;
 import android.app.Activity;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.util.Log;
+import android.os.Handler;
+import android.os.Message;
 import android.view.Menu;
 import android.view.View;
 import android.widget.ArrayAdapter;
@@ -50,6 +51,19 @@ public class MainActivity extends Activity {
 	private EditText message;
 	private Button register, send;
 	private TextView chat;
+	
+	/**
+	 * Handler for retrieving chat messages from the UDPChatListener thread
+	 */
+	UDPChatListener udpListener = null;
+	Thread chatListener = null;
+	Handler handler = new Handler() {
+		@Override
+		public void handleMessage(Message msg) {
+			String message = msg.getData().getString("message");
+			appendChat(message);
+		}
+	};
 	
 	/**
 	 * Worker that register to the server and sets the listener thread up
@@ -98,9 +112,8 @@ public class MainActivity extends Activity {
 				 * this ensures, that the socket is closed always, even
 				 * if an exception is thrown.
 				 */
-				if (socket != null) {
+				if (socket != null)
 					socket.close();
-				}
 			}
 			
 			return result;
@@ -132,6 +145,12 @@ public class MainActivity extends Activity {
 	}
 
 	@Override
+	protected void onDestroy() {
+		super.onDestroy();
+		unregister();
+	}
+
+	@Override
 	public boolean onCreateOptionsMenu(Menu menu) {
 		// Inflate the menu; this adds items to the action bar if it is present.
 		getMenuInflater().inflate(R.menu.main, menu);
@@ -152,7 +171,7 @@ public class MainActivity extends Activity {
 				JSONObject registerRequest = new JSONObject();
 				registerRequest.put("cmd", "register");
 				registerRequest.put("user", nickname);
-				Log.d(DEBUG_TAG, registerRequest.toString());
+				//Log.d(DEBUG_TAG, registerRequest.toString());
 				worker.execute(registerRequest.toString());
 
 				// we have to wait for the response (attention: this is blocking...)
@@ -161,6 +180,7 @@ public class MainActivity extends Activity {
 				// there exists already a user with this name?
 				JSONObject jsonResponse = new JSONObject(response);
 				if (hasError(jsonResponse)) {
+					// error occured
 					appendChat(jsonResponse.getString("text"));
 				} else {
 					// hide things ...
@@ -172,16 +192,22 @@ public class MainActivity extends Activity {
 					
 					// get initial lamport timestamp
 					lamportTime = jsonResponse.getInt("init_lamport");
+					
+					// start chat listener
+					udpListener = new UDPChatListener(serverAddress, clientPort, handler);
+					chatListener = new Thread(udpListener);
+					chatListener.start();
 				}
 			} else {
+				//stop chat listener
+				if (udpListener != null) {
+					udpListener.stop();
+				}
+				
 				// unregister mode
 				register.setText(R.string.register);
 				name.setEnabled(true);
-				
-				// deregister json object
-				JSONObject deregisterRequest = new JSONObject();
-				deregisterRequest.put("cmd", "deregister");
-				worker.execute(deregisterRequest.toString());
+				unregister();
 			}
 		} catch (InterruptedException e) {
 			e.printStackTrace();
@@ -200,6 +226,22 @@ public class MainActivity extends Activity {
 	/**
 	 * internal functions
 	 */
+	private void unregister () {
+		// deregister
+		try {
+			while (udpListener.isRunning()) {
+				udpListener.stop();
+			}
+			
+			UDPChatWorker worker = new UDPChatWorker();
+			JSONObject deregisterRequest = new JSONObject();
+			deregisterRequest.put("cmd", "deregister");
+			worker.execute(deregisterRequest.toString());
+		} catch (JSONException e) {
+			e.printStackTrace();
+		}
+	}
+	
 	public void writeChat (String text) {
 		chat.setText(text);
 	}
