@@ -25,9 +25,9 @@
         android:text="@string/register"
         android:onClick="onRegisterClick" />
 
-    <TextView
-        android:id="@+id/txt_chat"
-        android:layout_width="wrap_content"
+    <ListView
+        android:id="@+id/chat_list"
+        android:layout_width="fill_parent"
         android:layout_height="fill_parent"
         android:layout_above="@+id/btn_send"
         android:layout_alignParentLeft="true"
@@ -36,9 +36,9 @@
         android:layout_marginBottom="10dp"
         android:layout_marginTop="10dp"
         android:layout_toRightOf="@+id/btn_register"
-        android:gravity="bottom"
-        android:maxLines="50"
-        android:text="" />
+        android:gravity="bottom" >
+
+    </ListView>
 
     <EditText
         android:enabled="false"
@@ -58,6 +58,7 @@
         android:layout_height="40dp"
         android:layout_alignParentBottom="true"
         android:layout_alignParentRight="true"
-        android:text="@string/send" />
+        android:text="@string/send"
+        android:onClick="send" />
 
 </RelativeLayout>

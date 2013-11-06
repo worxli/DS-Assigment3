@@ -3,8 +3,11 @@ package ch.ethz.inf.vs.android.lukasbi.lamport;
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.net.SocketAddress;
 import java.net.SocketException;
+import java.net.UnknownHostException;
 
 import android.os.Bundle;
 import android.os.Handler;
@@ -16,26 +19,34 @@ public class UDPChatListener implements Runnable {
 	/**
 	 * listener settings
 	 */
-	private volatile boolean running = false;
+	
 	private DatagramSocket socket = null;
 	private final String DEBUG_TAG = "A3";
 	private Handler handler;
+	private String server;
+	private int server_port;
+	private int port;
 	
-	public UDPChatListener (String server, int port, Handler handler) throws SocketException {
+	public UDPChatListener (String mserver, int mserverPort, int mport, Handler handler) {
 		this.handler = handler;
-		socket = new DatagramSocket(null);
-		socket.setReuseAddress(true);
-		socket.bind(new InetSocketAddress(server, port));
+		this.server = mserver;
+		this.port = mport;
+		this.server_port = mserverPort;
 	}
 
 	@Override
 	public void run() {
-		running = true;
 		Log.d(DEBUG_TAG, "UDPChatListener started ...");
 		
 		try {
+			SocketAddress inetAddr = new InetSocketAddress(port);
+			socket = new DatagramSocket(null);
+			socket.setReuseAddress(true);
+			socket.bind(inetAddr);
+
 			// loop for incoming messages
-			while (running) {
+			while (!Thread.interrupted()) {
+				Log.d("loop", "waiting for packet");
 				// receive response
 				byte[] buffer = new byte[1024];
 				DatagramPacket response = new DatagramPacket(buffer, buffer.length);
@@ -63,11 +74,4 @@ public class UDPChatListener implements Runnable {
 				socket.close();
 		}
 	}
-	
-	/**
-	 * getters and setters
-	 */
-	public boolean isRunning() { return running; }
-	public void setRunning(boolean running) { this.running = running; }
-	public void stop () { this.running = false; };
 }

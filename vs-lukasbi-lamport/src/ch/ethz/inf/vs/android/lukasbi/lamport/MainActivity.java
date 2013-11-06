@@ -4,8 +4,13 @@ import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.SocketAddress;
 import java.net.SocketException;
 import java.net.UnknownHostException;
+import java.nio.channels.DatagramChannel;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -18,13 +23,17 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
+import android.util.Log;
 import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ListView;
 import android.widget.Spinner;
 import android.widget.TextView;
+import android.widget.Toast;
 
 public class MainActivity extends Activity {
 	
@@ -32,7 +41,7 @@ public class MainActivity extends Activity {
 	 * User settings
 	 */
 	private String nickname = null;
-	private int clientPort = 1250;
+	private int clientPort = 54752;
 	public final String DEBUG_TAG = "A3";
 	public int id = -1;
 	public int lamportTime = -1;
@@ -50,36 +59,75 @@ public class MainActivity extends Activity {
 	private Spinner name;
 	private EditText message;
 	private Button register, send;
-	private TextView chat;
+	//private TextView chat;
+	private ListView chat;
+	
+	ArrayAdapter<String> chat_adapter;
+	List<String> chat_items = new ArrayList<String>();
 	
 	/**
 	 * Handler for retrieving chat messages from the UDPChatListener thread
 	 */
 	UDPChatListener udpListener = null;
 	Thread chatListener = null;
-	Handler handler = new Handler() {
+	private Handler handler = new Handler() {
 		@Override
 		public void handleMessage(Message msg) {
 			String message = msg.getData().getString("message");
-			appendChat(message);
+
+			try {
+				JSONObject response = new JSONObject(message);
+				if(response.has("text")){
+					if(response.has("lamport")){
+						int lamport = Integer.parseInt(response.get("lamport").toString());
+						lamportTime = max(lamport,lamportTime)+1;
+						appendChat(response.get("text").toString(),lamport);
+					} else {
+						//always display
+						//appendChat(response.get("text").toString(),??);
+					}
+					
+				}
+				
+			} catch (JSONException e) {
+				e.printStackTrace();
+			}
+			
+		}
+
+		private int max(int lamport, int lamportTime) {
+			return lamport>lamportTime ? lamport : lamportTime;
 		}
 	};
 	
 	/**
-	 * Worker that register to the server and sets the listener thread up
+	 * Worker that register to the server and sets up the listener thread
 	 * @author Nico
 	 *
 	 */
 	private class UDPChatWorker extends AsyncTask<String, Void, String> {
+		int localport;
+		
 		@Override
 		protected String doInBackground(String... params) {
 			String result = null;
 			DatagramSocket socket = null;
 			
+			
+			DatagramChannel channel = null;
+			SocketAddress myaddress = new InetSocketAddress(clientPort);
+			
+			
 			try {
 				// connect to the server
-				socket = new DatagramSocket(clientPort);
+				SocketAddress inetAddr = new InetSocketAddress(clientPort);
+				socket = new DatagramSocket(null);
+				socket.setReuseAddress(true);
+				socket.bind(inetAddr);
+
+				
 				socket.setSoTimeout(timeout);
+				localport = socket.getLocalPort();
 				InetAddress serverAddr = InetAddress.getByName(serverAddress);
 			
 				// for each server request
@@ -105,7 +153,7 @@ public class MainActivity extends Activity {
 				// server not responding
 				e.printStackTrace();
 			} catch (Exception e) {
-				appendChat(e.getMessage());
+				e.printStackTrace();
 			} finally {
 				/**
 				 * close socket here in the finally clause
@@ -122,7 +170,6 @@ public class MainActivity extends Activity {
 		@Override
 		protected void onPostExecute(String result) {
 			super.onPostExecute(result);
-			appendChat("[worker] : " + result);
 		}
 	}
 
@@ -136,7 +183,11 @@ public class MainActivity extends Activity {
 		message = (EditText) findViewById(R.id.ipt_message);
 		register = (Button) findViewById(R.id.btn_register);
 		send = (Button) findViewById(R.id.btn_send);
-		chat = (TextView) findViewById(R.id.txt_chat);
+		//chat = (TextView) findViewById(R.id.txt_chat);
+		chat = (ListView) findViewById(R.id.chat_list);
+		
+		chat_adapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, chat_items);
+        chat.setAdapter(chat_adapter);
 		
 		// fill spinner with data (nicknames)
 		ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(this, R.array.nicknames, android.R.layout.simple_spinner_item);
@@ -157,70 +208,37 @@ public class MainActivity extends Activity {
 		return true;
 	}
 	
+	@Override
+	public boolean onOptionsItemSelected(MenuItem item) {
+	    // Handle item selection
+	    switch (item.getItemId()) {
+	        case R.id.get_info:
+	            get_info();
+	            return true;
+	        case R.id.get_clients:
+	            get_clients();
+	            return true;
+	        case R.id.unreg:
+	            unregister();
+	            return true;
+	        default:
+	            return super.onOptionsItemSelected(item);
+	    }
+	}
+	
 	/**
 	 * UI listeners
+	 * @throws UnknownHostException 
 	 */
 	public void onRegisterClick (View v) {
-		UDPChatWorker worker = new UDPChatWorker();
-		try {
-			// register mode
+			
 			if (register.getText().toString().equals(getString(R.string.register))) {
-				nickname = name.getSelectedItem().toString();
-				
-				// register to the server
-				JSONObject registerRequest = new JSONObject();
-				registerRequest.put("cmd", "register");
-				registerRequest.put("user", nickname);
-				//Log.d(DEBUG_TAG, registerRequest.toString());
-				worker.execute(registerRequest.toString());
-
-				// we have to wait for the response (attention: this is blocking...)
-				String response = worker.get(timeout, TimeUnit.MILLISECONDS);
-				
-				// there exists already a user with this name?
-				JSONObject jsonResponse = new JSONObject(response);
-				if (hasError(jsonResponse)) {
-					// error occured
-					appendChat(jsonResponse.getString("text"));
-				} else {
-					// hide things ...
-					register.setText(R.string.unregister);
-					name.setEnabled(false);
-					
-					// get user id
-					id = jsonResponse.getInt("index");
-					
-					// get initial lamport timestamp
-					lamportTime = jsonResponse.getInt("init_lamport");
-					
-					// start chat listener
-					udpListener = new UDPChatListener(serverAddress, clientPort, handler);
-					chatListener = new Thread(udpListener);
-					chatListener.start();
-				}
+				// register mode
+				register();
 			} else {
-				//stop chat listener
-				if (udpListener != null) {
-					udpListener.stop();
-				}
-				
 				// unregister mode
-				register.setText(R.string.register);
-				name.setEnabled(true);
 				unregister();
 			}
-		} catch (InterruptedException e) {
-			e.printStackTrace();
-		} catch (ExecutionException e) {
-			e.printStackTrace();
-		} catch (JSONException e) {
-			e.printStackTrace();
-		} catch (TimeoutException e) {
-			appendChat(getText(R.string.server_timeout).toString());
-			e.printStackTrace();
-		} catch (Exception e) {
-			appendChat(e.getMessage());
-		}
 	}
 	
 	/**
@@ -229,26 +247,198 @@ public class MainActivity extends Activity {
 	private void unregister () {
 		// deregister
 		try {
-			while (udpListener.isRunning()) {
-				udpListener.stop();
+			if(chatListener!=null){
+				chatListener.interrupt();
 			}
 			
 			UDPChatWorker worker = new UDPChatWorker();
 			JSONObject deregisterRequest = new JSONObject();
 			deregisterRequest.put("cmd", "deregister");
 			worker.execute(deregisterRequest.toString());
+			
+			// we have to wait for the response (attention: this is blocking...)
+			String response = worker.get(timeout, TimeUnit.MILLISECONDS);
+			
+			//JSONObject jsonResponse = new JSONObject(response);
+			
+			register.setText(R.string.register);
+			name.setEnabled(true);
+			
 		} catch (JSONException e) {
+			e.printStackTrace();
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (ExecutionException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (TimeoutException e) {
+			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}
 	
-	public void writeChat (String text) {
-		chat.setText(text);
+	private void register () {
+		
+		UDPChatWorker worker = new UDPChatWorker();
+		
+		try {
+			nickname = name.getSelectedItem().toString();
+			
+			// register to the server
+			JSONObject registerRequest = new JSONObject();
+		
+			registerRequest.put("cmd", "register");
+			registerRequest.put("user", nickname);
+			//Log.d(DEBUG_TAG, registerRequest.toString());
+			worker.execute(registerRequest.toString());
+
+			// we have to wait for the response (attention: this is blocking...)
+			String response = worker.get(timeout, TimeUnit.MILLISECONDS);
+					
+			// there exists already a user with this name?
+			JSONObject jsonResponse = new JSONObject(response);
+			if (hasError(jsonResponse)) {
+				// error occured
+				makeToast(jsonResponse.getString("error"));
+			} else {
+				//makeToast(jsonResponse.getString("success"));
+				// hide things ...
+				register.setText(R.string.unregister);
+				name.setEnabled(false);
+				
+				// get user id
+				id = jsonResponse.getInt("index");
+				
+				// get initial lamport timestamp
+				lamportTime = jsonResponse.getInt("init_lamport");
+				
+				// start chat listener
+				chatListener = new Thread(new UDPChatListener(serverAddress, serverPort, clientPort, handler));
+				chatListener.start();
+				
+				send.setEnabled(true);
+				message.setEnabled(true);
+				
+			}
+		} catch (JSONException e) {
+			e.printStackTrace();
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (ExecutionException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (TimeoutException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
 	
-	public void appendChat (String text) {
+	public void get_info() {
+		try {
+			UDPChatWorker worker = new UDPChatWorker();
+			JSONObject deregisterRequest = new JSONObject();
+			deregisterRequest.put("cmd", "info");
+			worker.execute(deregisterRequest.toString());
+			
+			// we have to wait for the response (attention: this is blocking...)
+			String response = worker.get(timeout, TimeUnit.MILLISECONDS);
+			
+			// there exists already a user with this name?
+			JSONObject jsonResponse = new JSONObject(response);
+			
+			makeToast(jsonResponse.getString("info"));
+		} catch(Exception e) {
+			
+		}
+	}
+	
+	public void get_clients() {
+		try {
+			UDPChatWorker worker = new UDPChatWorker();
+			JSONObject deregisterRequest = new JSONObject();
+			deregisterRequest.put("cmd", "get_clients");
+			worker.execute(deregisterRequest.toString());
+			
+			// we have to wait for the response (attention: this is blocking...)
+			String response = worker.get(timeout, TimeUnit.MILLISECONDS);
+			
+			// there exists already a user with this name?
+			JSONObject jsonResponse = new JSONObject(response);
+			
+			makeToast(jsonResponse.getString("clients"));
+		} catch(Exception e) {
+			
+		}
+	}
+	
+	public void send(View v){
+		String text = message.getText().toString();
+		
+		//lamport timestamp
+		lamportTime = lamportTime+1;
+		
+		appendChat(text,lamportTime);
+		
+		message.setText("");
+		
+		UDPChatWorker worker = new UDPChatWorker();
+		
+		try {
+			JSONObject sendMsg = new JSONObject();
+		
+			sendMsg.put("cmd", "message");
+			sendMsg.put("text", text);
+			sendMsg.put("lamport", 0);
+			worker.execute(sendMsg.toString());
+
+			// we have to wait for the response (attention: this is blocking...)
+			String response = worker.get(timeout, TimeUnit.MILLISECONDS);
+					
+			// there exists already a user with this name?
+			JSONObject jsonResponse = new JSONObject(response);
+			if (hasError(jsonResponse)) {
+				// error occured
+				makeToast(jsonResponse.getString("error"));
+			} else {
+				//makeToast(jsonResponse.getString("success"));				
+			}
+		} catch (JSONException e) {
+			e.printStackTrace();
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (ExecutionException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (TimeoutException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+	
+	public void appendChat (String text, int lamport) {
 		String lineSep = System.getProperty("line.separator");
-		chat.append(text + lineSep);
+		
+		if(text!=null){
+			
+			//TODO: don't block on sinlge message
+			if(isDeliverable(text,lamport)){
+				chat_items.add(text);
+				chat_adapter.notifyDataSetChanged();
+			}
+			
+		}
+	}
+	
+	private boolean isDeliverable(String text, int lamport) {
+		// TODO Auto-generated method stub
+		return true;
+	}
+
+	public void makeToast (String text) {
+		Toast.makeText(getApplicationContext(), text, Toast.LENGTH_LONG).show();
 	}
 	
 	public boolean hasError (JSONObject obj) {
