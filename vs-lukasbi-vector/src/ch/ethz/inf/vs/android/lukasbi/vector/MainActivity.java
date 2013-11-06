@@ -12,6 +12,8 @@ import java.nio.channels.DatagramChannel;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -49,7 +51,8 @@ public class MainActivity extends Activity {
 	private int clientPort = 54752;
 	public final String DEBUG_TAG = "A3";
 	public int id = -1;
-	public int lamportTime = -1;
+	public int ourIndex = -1;
+	public HashMap<String, Integer> currentVectorClock;
 	
 	/**
 	 * Server settings
@@ -82,9 +85,25 @@ public class MainActivity extends Activity {
 			try {
 				JSONObject response = new JSONObject(message);
 				if(response.has("text")){
-					if(response.has("lamport")){
-						int lamport = response.getInt("lamport");
-						lamportTime = Math.max(lamport,lamportTime);
+					if(response.has("lamport")){ // Indicated if it is a system message or not
+						
+						// Update our vector clock: clock from incoming message is reference in terms of existing indexes!
+						HashMap<String, Integer> newClock = new HashMap<String, Integer>();
+						Iterator<?> keys = response.getJSONObject("time_vector").keys();
+						while (keys.hasNext()) {
+							String key = (String)keys.next();
+							// Find max between vectorClock from message and local vector clock for current index
+							newClock.put(key,
+										Math.max(
+												(currentVectorClock.get(key) != null) ? currentVectorClock.get(key) : 0,
+												response.getJSONObject("time_vector").getInt(key)
+												)
+										);
+						}
+						newClock.put(String.valueOf(ourIndex), currentVectorClock.get(String.valueOf(ourIndex)) + 1); // Always increment our clock
+						currentVectorClock = newClock;
+						
+						// Append received message to chat log
 						appendChat(response);
 					} else {
 						// Display as toast
@@ -306,6 +325,7 @@ public class MainActivity extends Activity {
 				Log.d(DEBUG_TAG, "Error registering: "+jsonResponse.toString());
 				makeToast(jsonResponse.getString("error"));
 			} else {
+				Log.d(DEBUG_TAG, "Login: "+jsonResponse.toString());
 				makeToast("Logged in!");
 				
 				// hide things ...
@@ -315,8 +335,9 @@ public class MainActivity extends Activity {
 				// get user id
 				id = jsonResponse.getInt("index");
 				
-				// get initial lamport timestamp
-				lamportTime = jsonResponse.getInt("init_lamport");
+				// get initial vector time and our index
+				ourIndex = jsonResponse.getInt("index");
+				currentVectorClock = vectorClockFromJSON(jsonResponse, "init_time_vector");
 				
 				// start chat listener
 				chatListener = new Thread(new UDPChatListener(serverAddress, serverPort, clientPort, handler));
@@ -381,8 +402,8 @@ public class MainActivity extends Activity {
 	public void send(View v) {
 		String text = message.getText().toString();
 		
-		//lamport timestamp
-		lamportTime = lamportTime+1;
+		// Increment the index of our vector clock
+		currentVectorClock.put(String.valueOf(ourIndex), currentVectorClock.get(String.valueOf(ourIndex)) + 1);
 				
 		message.setText("");
 		
@@ -393,7 +414,7 @@ public class MainActivity extends Activity {
 		
 			sendMsg.put("cmd", "message");
 			sendMsg.put("text", text);
-			sendMsg.put("lamport", lamportTime);
+			sendMsg.put("time_vector", new JSONObject(currentVectorClock));
 			worker.execute(sendMsg.toString());
 			
 			// we have to wait for the response (attention: this is blocking...)
@@ -426,7 +447,6 @@ public class MainActivity extends Activity {
 	}
 	
 	public void appendChat (JSONObject msg) {
-		String lineSep = System.getProperty("line.separator");
 		
 		if(msg!=null){
 			
@@ -463,5 +483,24 @@ public class MainActivity extends Activity {
 			value = getString(R.string.server_timeout);
 		}
 		return value;
+	}
+	
+	public static HashMap<String, Integer> vectorClockFromJSON(JSONObject o1, String vectorTimeKey) {
+		try {
+			HashMap<String, Integer> vector1 = new HashMap<String, Integer>();
+			Iterator<?> keys = o1.getJSONObject(vectorTimeKey).keys();
+			while (keys.hasNext()) {
+				String key = (String)keys.next();
+				vector1.put(key, o1.getJSONObject(vectorTimeKey).getInt(key));
+			}
+			return vector1;
+		} catch (JSONException e) {
+			e.printStackTrace();
+			return null;
+		}
+	}
+	
+	public static HashMap<String, Integer> vectorClockFromJSON(JSONObject o1) {
+		return vectorClockFromJSON(o1, "time_vector");
 	}
 }

@@ -3,6 +3,8 @@ package ch.ethz.inf.vs.android.lukasbi.lamport;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 
 import org.json.JSONException;
@@ -75,7 +77,7 @@ public class ChatAdapter extends BaseAdapter {
 	
 	public class LamportComparator implements Comparator<JSONObject> {
 		@Override
-	    public int compare(JSONObject o1, JSONObject o2) {
+		public int compare(JSONObject o1, JSONObject o2) {
 			int lamport1, lamport2;
 			try {
 				lamport1 = o1.getInt("lamport");

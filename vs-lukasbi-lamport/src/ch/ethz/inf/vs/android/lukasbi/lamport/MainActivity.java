@@ -304,6 +304,7 @@ public class MainActivity extends Activity {
 				Log.d(DEBUG_TAG, "Error registering: "+jsonResponse.toString());
 				makeToast(jsonResponse.getString("error"));
 			} else {
+				Log.d(DEBUG_TAG, "Login: "+jsonResponse.toString());
 				makeToast("Logged in!");
 				
 				// hide things ...

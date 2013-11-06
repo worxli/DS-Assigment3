@@ -18,7 +18,7 @@
 		
 	</string-array>
 
-    <string name="app_name">vs-lukasbi-lamport</string>
+    <string name="app_name">vs-lukasbi-vector</string>
     <string name="get_clients">Clients</string>
     <string name="get_info">Info</string>
 	<string name="hint_name">enter your nickname</string>

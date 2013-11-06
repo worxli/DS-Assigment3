@@ -3,6 +3,8 @@ package ch.ethz.inf.vs.android.lukasbi.vector;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 
 import org.json.JSONException;
@@ -57,7 +59,7 @@ public class ChatAdapter extends BaseAdapter {
 	
 	public void add_msg(JSONObject msg) {
 		this.chat_items.add(msg);
-		Collections.sort(chat_items, new LamportComparator());
+		Collections.sort(chat_items, new VectorClockComparator());
 	}
 	
 	@Override
@@ -75,19 +77,35 @@ public class ChatAdapter extends BaseAdapter {
 		return position;
 	}
 	
-	public class LamportComparator implements Comparator<JSONObject> {
+	public class VectorClockComparator implements Comparator<JSONObject> {
 		@Override
+		/**
+	     * o1 is before o2 iff both conditions are met:
+	     * - each process's clock is less-than-or-equal-to its own clock in other; and
+	     * - there is at least one process's clock which is strictly less-than its
+	     *   own clock in o2
+	     */
 	    public int compare(JSONObject o1, JSONObject o2) {
-			int lamport1, lamport2;
-			try {
-				lamport1 = o1.getInt("lamport");
-				lamport2 = o2.getInt("lamport");
-				return lamport1 > lamport2 ? +1 : lamport1 < lamport2 ? -1 : 0;
-			} catch (JSONException e) {
-				// Shit happens...
-				e.printStackTrace();
-				return 0;
+			int isBefore = 0;
+			
+			// Since we are not guaranteed that both objects have the same indexes computer intersection and compare based on that
+			HashMap<String, Integer> vector1 = MainActivity.vectorClockFromJSON(o1);
+			HashMap<String, Integer> vector2 = MainActivity.vectorClockFromJSON(o2);
+			HashMap<String, Integer> intersection = new HashMap<String, Integer>(vector1);
+			intersection.keySet().retainAll(vector2.keySet());
+			
+			for (String key : intersection.keySet()) {
+				int val1 = vector1.get(key);
+				int val2 = vector2.get(key);
+				
+				if (val1 > val2)
+					return 1;
+				else if (val1 < val2)
+					isBefore = -1;
+				
 			}
-	    }
+			
+			return isBefore;
+		}
 	}
 }
