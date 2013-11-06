@@ -1,4 +1,4 @@
-package ch.ethz.inf.vs.android.lukasbi.lamport;
+package ch.ethz.inf.vs.android.lukasbi.vector;
 
 import java.io.IOException;
 import java.net.DatagramPacket;

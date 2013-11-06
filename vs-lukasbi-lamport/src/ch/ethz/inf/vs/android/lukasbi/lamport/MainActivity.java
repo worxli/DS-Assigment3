@@ -10,6 +10,8 @@ import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.nio.channels.DatagramChannel;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -19,6 +21,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import android.app.Activity;
+import android.content.res.Configuration;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
@@ -62,8 +65,7 @@ public class MainActivity extends Activity {
 	//private TextView chat;
 	private ListView chat;
 	
-	ArrayAdapter<String> chat_adapter;
-	List<String> chat_items = new ArrayList<String>();
+	ChatAdapter chat_adapter;
 	
 	/**
 	 * Handler for retrieving chat messages from the UDPChatListener thread
@@ -79,12 +81,12 @@ public class MainActivity extends Activity {
 				JSONObject response = new JSONObject(message);
 				if(response.has("text")){
 					if(response.has("lamport")){
-						int lamport = Integer.parseInt(response.get("lamport").toString());
-						lamportTime = max(lamport,lamportTime)+1;
-						appendChat(response.get("text").toString(),lamport);
+						int lamport = response.getInt("lamport");
+						lamportTime = Math.max(lamport,lamportTime);
+						appendChat(response);
 					} else {
-						//always display
-						//appendChat(response.get("text").toString(),??);
+						// Display as toast
+						makeToast(response.get("text").toString());
 					}
 					
 				}
@@ -93,10 +95,6 @@ public class MainActivity extends Activity {
 				e.printStackTrace();
 			}
 			
-		}
-
-		private int max(int lamport, int lamportTime) {
-			return lamport>lamportTime ? lamport : lamportTime;
 		}
 	};
 	
@@ -186,7 +184,7 @@ public class MainActivity extends Activity {
 		//chat = (TextView) findViewById(R.id.txt_chat);
 		chat = (ListView) findViewById(R.id.chat_list);
 		
-		chat_adapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, chat_items);
+		chat_adapter = new ChatAdapter(getBaseContext());
         chat.setAdapter(chat_adapter);
 		
 		// fill spinner with data (nicknames)
@@ -285,6 +283,9 @@ public class MainActivity extends Activity {
 		try {
 			nickname = name.getSelectedItem().toString();
 			
+			// Set our own port based on selected nickname so we can actually login with multiple different users
+			clientPort = clientPort + name.getSelectedItemPosition();
+			
 			// register to the server
 			JSONObject registerRequest = new JSONObject();
 		
@@ -300,9 +301,11 @@ public class MainActivity extends Activity {
 			JSONObject jsonResponse = new JSONObject(response);
 			if (hasError(jsonResponse)) {
 				// error occured
+				Log.d(DEBUG_TAG, "Error registering: "+jsonResponse.toString());
 				makeToast(jsonResponse.getString("error"));
 			} else {
-				//makeToast(jsonResponse.getString("success"));
+				makeToast("Logged in!");
+				
 				// hide things ...
 				register.setText(R.string.unregister);
 				name.setEnabled(false);
@@ -373,14 +376,12 @@ public class MainActivity extends Activity {
 		}
 	}
 	
-	public void send(View v){
+	public void send(View v) {
 		String text = message.getText().toString();
 		
 		//lamport timestamp
 		lamportTime = lamportTime+1;
-		
-		appendChat(text,lamportTime);
-		
+				
 		message.setText("");
 		
 		UDPChatWorker worker = new UDPChatWorker();
@@ -390,18 +391,22 @@ public class MainActivity extends Activity {
 		
 			sendMsg.put("cmd", "message");
 			sendMsg.put("text", text);
-			sendMsg.put("lamport", 0);
+			sendMsg.put("lamport", lamportTime);
 			worker.execute(sendMsg.toString());
-
+			
 			// we have to wait for the response (attention: this is blocking...)
 			String response = worker.get(timeout, TimeUnit.MILLISECONDS);
+			
+			appendChat(sendMsg);
 					
 			// there exists already a user with this name?
 			JSONObject jsonResponse = new JSONObject(response);
 			if (hasError(jsonResponse)) {
 				// error occured
+				Log.d(DEBUG_TAG, "Error sending message: "+jsonResponse.toString());
 				makeToast(jsonResponse.getString("error"));
 			} else {
+				Log.d(DEBUG_TAG, "SUCCESS sending: "+jsonResponse.toString());
 				//makeToast(jsonResponse.getString("success"));				
 			}
 		} catch (JSONException e) {
@@ -418,24 +423,27 @@ public class MainActivity extends Activity {
 		}
 	}
 	
-	public void appendChat (String text, int lamport) {
+	public void appendChat (JSONObject msg) {
 		String lineSep = System.getProperty("line.separator");
 		
-		if(text!=null){
+		if(msg!=null){
+			
+			chat_adapter.add_msg(msg);
+			chat_adapter.notifyDataSetChanged();
 			
 			//TODO: don't block on sinlge message
-			if(isDeliverable(text,lamport)){
-				chat_items.add(text);
-				chat_adapter.notifyDataSetChanged();
-			}
+			//if(isDeliverable(text,lamport)){
+				//chat_items.add(text);
+				//chat_adapter.notifyDataSetChanged();
+			//}
 			
 		}
 	}
 	
-	private boolean isDeliverable(String text, int lamport) {
+	/*private boolean isDeliverable(String text, int lamport) {
 		// TODO Auto-generated method stub
 		return true;
-	}
+	}*/
 
 	public void makeToast (String text) {
 		Toast.makeText(getApplicationContext(), text, Toast.LENGTH_LONG).show();
