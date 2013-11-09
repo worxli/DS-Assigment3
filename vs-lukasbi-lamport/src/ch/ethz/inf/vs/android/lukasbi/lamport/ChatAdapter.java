@@ -60,6 +60,13 @@ public class ChatAdapter extends BaseAdapter {
 		Collections.sort(chat_items, new LamportComparator());
 	}
 	
+	public JSONObject getLastMessage() {
+		if (this.chat_items.size() == 0)
+			return null;
+		else
+			return this.chat_items.get(this.chat_items.size()-1);
+	}
+	
 	@Override
 	public int getCount() {
 		return chat_items.size();

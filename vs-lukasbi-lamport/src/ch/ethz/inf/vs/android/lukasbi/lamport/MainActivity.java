@@ -48,6 +48,8 @@ public class MainActivity extends Activity {
 	public final String DEBUG_TAG = "A3";
 	public int id = -1;
 	public int lamportTime = -1;
+	public ArrayList<JSONObject> msgQueue = new ArrayList<JSONObject>();
+	public int msgTimeout = 30; // Timeout after which a message is delivered anyway, in seconds
 	
 	/**
 	 * Server settings
@@ -83,7 +85,24 @@ public class MainActivity extends Activity {
 					if(response.has("lamport")){
 						int lamport = response.getInt("lamport");
 						lamportTime = Math.max(lamport,lamportTime);
-						appendChat(response);
+						
+						// Add timeout timestamp to message
+						response.put("timeout", (System.currentTimeMillis()/1000L)+msgTimeout);
+						
+						// Check if message is deliverable.
+						// Note: If the message is deliverable we implicitly know that it advanced the timestamp of the
+						// messages in our chat, thus we could be able to display older messages as well now
+						if (isDeliverable(response)) {
+							// Check if previous messages became deliverable
+							for (JSONObject aMsg : msgQueue) {
+								if (isDeliverable(aMsg)) {
+									appendChat(aMsg);
+									msgQueue.remove(aMsg);
+								}
+							}
+							appendChat(response);
+						} else
+							msgQueue.add(response);
 					} else {
 						// Display as toast
 						makeToast(response.get("text").toString());
@@ -425,26 +444,31 @@ public class MainActivity extends Activity {
 	}
 	
 	public void appendChat (JSONObject msg) {
-		String lineSep = System.getProperty("line.separator");
-		
-		if(msg!=null){
-			
+		//String lineSep = System.getProperty("line.separator");
+		if (msg!=null) {
 			chat_adapter.add_msg(msg);
-			chat_adapter.notifyDataSetChanged();
-			
-			//TODO: don't block on sinlge message
-			//if(isDeliverable(text,lamport)){
-				//chat_items.add(text);
-				//chat_adapter.notifyDataSetChanged();
-			//}
-			
+			chat_adapter.notifyDataSetChanged();			
 		}
 	}
 	
-	/*private boolean isDeliverable(String text, int lamport) {
-		// TODO Auto-generated method stub
-		return true;
-	}*/
+	private boolean isDeliverable(JSONObject msg) {
+		try {
+			JSONObject lastMsg = chat_adapter.getLastMessage();
+			if (lastMsg == null)
+				return true;
+			
+			if (msg.getInt("lamport") == lastMsg.getInt("lamport")+1 || msg.getInt("lamport") == lastMsg.getInt("lamport")) // msg follows immediately after last message
+				return true;
+			else if (msg.has("timeout") && msg.getLong("timeout") > (System.currentTimeMillis()/1000L))
+				return true;
+			else
+				return false;
+		} catch (JSONException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			return false;
+		}
+	}
 
 	public void makeToast (String text) {
 		Toast.makeText(getApplicationContext(), text, Toast.LENGTH_LONG).show();
