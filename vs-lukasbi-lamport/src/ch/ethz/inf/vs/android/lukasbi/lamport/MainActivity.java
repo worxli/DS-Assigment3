@@ -123,28 +123,21 @@ public class MainActivity extends Activity {
 	 *
 	 */
 	private class UDPChatWorker extends AsyncTask<String, Void, String> {
-		int localport;
 		
 		@Override
 		protected String doInBackground(String... params) {
 			String result = null;
 			DatagramSocket socket = null;
 			
-			
-			DatagramChannel channel = null;
-			SocketAddress myaddress = new InetSocketAddress(clientPort);
-			
-			
 			try {
-				// connect to the server
+				//set up and bind socket
 				SocketAddress inetAddr = new InetSocketAddress(clientPort);
 				socket = new DatagramSocket(null);
 				socket.setReuseAddress(true);
 				socket.bind(inetAddr);
 
-				
+				//set timeout and retrieve server address
 				socket.setSoTimeout(timeout);
-				localport = socket.getLocalPort();
 				InetAddress serverAddr = InetAddress.getByName(serverAddress);
 			
 				// for each server request

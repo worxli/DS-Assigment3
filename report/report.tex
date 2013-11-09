@@ -94,17 +94,17 @@
 % e-mail address with \email.
 %
 % 1st. author
-\alignauthor Student One\\
-	\affaddr{ETH ID XX-XXX-XXX}\\
-	\email{one@student.ethz.ch}
+\alignauthor Robin Guldener\\
+	\affaddr{ETH ID 11-930-369}\\
+	\email{robing@student.ethz.ch}
 % 2nd. author
-\alignauthor Student Two\\
-	\affaddr{ETH ID XX-XXX-XXX}\\
-	\email{two@student.ethz.ch}
+\alignauthor Nico Previtali\\
+	\affaddr{ETH ID 11-926-433}\\
+	\email{pnico@student.ethz.ch}
 %% 3rd. author
-\alignauthor Student Three\\
-	\affaddr{ETH ID XX-XXX-XXX}\\
-	\email{three@student.ethz.ch}
+\alignauthor Lukas Bischofbergeryxcvyxcvxyv\\
+	\affaddr{ETH ID 11-915-907}\\
+	\email{lukasbi@student.ethz.ch}
 %\and  % use '\and' if you need 'another row' of author names
 %% 4th. author
 %\alignauthor Student Four\\
@@ -126,15 +126,17 @@
 \maketitle
 
 \begin{abstract}
-Concisely state (i) which Android device you used, (ii) which tasks you completed and which are working correctly or limited, and (iii) what your specific enhancements are.
+For the implementation of this assignment we made use of the two lab provided HTC desire number 25 and 37. We were able to implement both assignments and to our best knowledge both chats are working flawlessly. 
+%Concisely state (i) which Android device you used, (ii) which tasks you completed and which are working correctly or limited, and (iii) what your specific enhancements are.
 \end{abstract}
 
 \section{Introduction}
 
-Use the introduction for background information on the assignment.
+%Use the introduction for background information on the assignment.
 \begin{itemize}
   \item Please give an overview of the usage of the Lamport times and of the Vector Clocks.
-  \item Also write about your architecture to handle the UDP communication.
+  \item %Also write about your architecture to handle the UDP communication.
+  We used asynchronous tasks to register, unregister, get clients/server information from the server and sending chat messages. So these tasks can send and possibly also receive packets. For receiving information from the server, e.g chat messages and logout information about other clients we have implemented a background thread which has only the purpose to listen for incoming UDP packets.
 \end{itemize}
 
 Use references such as books \cite{hello}, papers and theses \cite{REST}, or specifications \cite{RFC2616} whenever available.
@@ -143,8 +145,19 @@ In a thesis, you would put them as footnotes. At this stage, however, you will o
 Cite every source you used throughout the assignment.
 
 \section{Lamport Timestamps}
+
+\begin{figure}
+    \centering
+    \subfigure[Lamport Chat]{
+        \includegraphics[height=4.2cm]{lamport.png}
+        \lfig{axis}   
+    }
+    \caption{Lamport Chat overview}
+\end{figure}
 \begin{itemize}
+  
   \item Describe shortly, how you designed your application to implement this task. Include 1-2 screenshots of your app.
+  
   \item Highlight the backbone of your implementation (methods) and add a state transition diagram to describe the logic behind the handling of communication with the server. Especially, describe how you designed the \texttt{isDeliverable(...)} method.
   \item Describe the main problem encountered in this task and give an overview of your solution.
 \end{itemize}
