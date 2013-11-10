@@ -3,13 +3,12 @@
 \bibitem{androidAsyncTask}
 {Android AsyncTask}.
 \newblock
-  \url{http://vslab.inf.ethz.ch:8081/sunspots/Spot1/sensors/temperature}.
+  \url{http://developer.android.com/reference/android/os/AsyncTask.html}.
 \newblock Accessed on 10 Nov 2013.
 
 \bibitem{androidHandler}
 {Handler object in Android}.
-\newblock
-  \url{http://vslab.inf.ethz.ch:8081/sunspots/Spot1/sensors/temperature}.
+\newblock \url{http://developer.android.com/reference/android/os/Handler.html}.
 \newblock Accessed on 10 Nov 2013.
 
 \bibitem{lamport}
