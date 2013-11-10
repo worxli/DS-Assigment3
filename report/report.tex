@@ -136,15 +136,10 @@ For the implementation of this assignment we made use of the two lab provided HT
 
 %Use the introduction for background information on the assignment.
 \begin{itemize}
-  \item Please give an overview of the usage of the Lamport times and of the Vector Clocks.
+  \item Lamport timestamps\cite{lamport} and vector clocks\cite{vector_clocks} are used to order the messages we receive from the chat server. Both timestamps are stored for all messages implicitly since we always store the entire JSONObject returned from the server. This has the advantage that large parts of our chat implementation is shared between the lamport and the vector clock version, which eases maintenance and sped up our development process. For Lamport timestamps we explicitly ordered the messages as they were arriving whereas for vector clocks we only order the messages implicitly in the displaying ListView. Further details regarding these implementations can be found in the respective sections below.%Please give an overview of the usage of the Lamport times and of the Vector Clocks.
   \item %Also write about your architecture to handle the UDP communication.
   We used asynchronous tasks to register, unregister, get clients/server information from the server and sending chat messages. So these tasks can send and possibly also receive packets. For receiving information from the server, e.g chat messages and logout information about other clients we have implemented a background thread which has only the purpose to listen for incoming UDP packets. 
 \end{itemize}
-
-Use references such as books \cite{hello}, papers and theses \cite{REST}, or specifications \cite{RFC2616} whenever available.
-Web sites for documentation \cite{devServices}, tutorials, etc. are a special case.
-In a thesis, you would put them as footnotes. At this stage, however, you will only have a few ``real references,'' so we put the Web sites into the bibliography.
-Cite every source you used throughout the assignment.
 
 \section{Lamport Timestamps}
 
@@ -189,7 +184,7 @@ public class VectorClockComparator implements Comparator<JSONObject> {
     public int compare(JSONObject o1, JSONObject o2) {
 		int isBefore = 0;
 		
-		// Since we are not guaranteed that both objects have the same indexes computer intersection and compare based on that
+		// Since we are not guaranteed that both objects have the same indexes compute intersection and compare based on that
 		HashMap<String, Integer> vector1 = MainActivity.vectorClockFromJSON(o1);
 		HashMap<String, Integer> vector2 = MainActivity.vectorClockFromJSON(o2);
 		HashMap<String, Integer> intersection = new HashMap<String, Integer>(vector1);
@@ -210,17 +205,16 @@ public class VectorClockComparator implements Comparator<JSONObject> {
 	}
 }
 \end{lstlisting}
-  \item Describe how you designed the \texttt{isDeliverable(...)} method.
-  \item Describe the main problem encountered in this task and give an overview of your solution.
+  \item Since we cannot reliably compare two vector clocks with this chat implementation (this is due to the fact that the number of objects in the clock and the devices they represent may vary from message to message) we were unsure how to reliably order vector clock messages and guarantee direct consecutive ordering. This also represented our main challenge in this part of the application and since we could not come up with a satisfactory definition for consecutive ordering we finally agreed in ignoring the isDeliverable method and to provide at best-effor total ordering of the incoming messages. This is also reflected in our comparator listed above, which makes use of the intersection to order any two messages but this is not ideal from a theoretical standpoint and may not always yield good absolute orders. Further information regarding vector clocks from the lecture would have been beneficial.
 \end{itemize}
 
 \section{Discussion}
 Please reply to the following questions.
 \begin{itemize}
   \item \textbf{What are the main advantages of using Vector Clocks over Lamport Timestamps?} The system of vector clocks is strongly consistent. Thus, by comparing the vector timestamp of two events, we can determine if the events are causally related. This is called the \textit{strong clock consistency condition}. Using only a Lamport Timestamps, only a partial causal ordering can be inferred from the clock (the implication goes only in one way, called the \textit{clock consistency condition}).
-  \item \textbf{When exactly are two Vector Clocks causally dependent?}
-  \item \textbf{Does a clock tick happen before or after the sending of a message. What are the implications of changing this?} We decided that we would not let our applications trigger a tick when receiving a message. What would be the implications of ticking on receive?
-  \item \textbf{Read and assess the paper Tobias Landes - Dynamic Vector Clocks for Consistent Ordering of Events in Dynamic Distributed Applications3 that gives a good overview on the discussed methods. In particular, which problem of vector clocks is solved in the paper?}
+  \item \textbf{When exactly are two Vector Clocks causally dependent?} The conditions are already listed in the code snippet but are repeated here. For two vector clocks to be causally dependent they need to be either each clock in the first is less than or equal to the clocks in the second OR there is at least one clock in process one that is strictly less than it's own clock in the second.
+  \item \textbf{Does a clock tick happen before or after the sending of a message. What are the implications of changing this?} We decided that we would not let our applications trigger a tick when receiving a message. The implications of also ticking the clock on a message receive would be that consecutive ordering could no longer be guaranteed, since it is not known how many messages any client received before sending the next one.
+  \item \textbf{Read and assess the paper Tobias Landes - Dynamic Vector Clocks for Consistent Ordering of Events in Dynamic Distributed Applications3 that gives a good overview on the discussed methods. In particular, which problem of vector clocks is solved in the paper?} The paper investigates the implications of dynamic arriving and leaving of processes on the vector clock logical time ordering system. Whilst the original vector clocks are not sufficient for such situation, the paper presents a workable solution for such dynamic environements that builds on the original vector clocks idea and extends the known concept.
 \end{itemize}
 
 
@@ -247,9 +241,9 @@ The second part consisted of
 %robin
 Last we had to
 \begin{itemize}
-  \item 1
-  \item 2
-  \item 3
+  \item Implement the \texttt{ChatAdapter} for dynamicly populating the ListView
+  \item Implement the isDeliverable method for lamport timestamps and cache all incoming requests until all consecutive messages arrived
+  \item Implement the vector clocks comparator and figure out how to order two messages with different vector clock entries
 \end{itemize}
 % The following two commands are all you need in the
 % initial runs of your .tex file to

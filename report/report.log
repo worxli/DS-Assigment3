@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.1415926-2.5-1.40.14 (TeX Live 2013) (format=pdflatex 2013.10.18)  10 NOV 2013 21:18
+This is pdfTeX, Version 3.1415926-2.5-1.40.14 (TeX Live 2013) (format=pdflatex 2013.10.11)  10 NOV 2013 22:08
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -383,9 +383,9 @@ File: ulasy.fd 1998/08/17 v2.2e LaTeX symbol font definitions
 <lamport.png, id=1, 458.46281pt x 724.95844pt>
 File: lamport.png Graphic file (type png)
  <use lamport.png>
-Package pdftex.def Info: lamport.png used on input line 156.
+Package pdftex.def Info: lamport.png used on input line 148.
 (pdftex.def)             Requested size: 75.56615pt x 119.50148pt.
-LaTeX Font Info:    Try loading font information for T1+aett on input line 162.
+LaTeX Font Info:    Try loading font information for T1+aett on input line 155.
 
 
 (/usr/local/texlive/2013/texmf-dist/tex/latex/ae/t1aett.fd
@@ -394,34 +394,36 @@ File: t1aett.fd 1997/11/16 Font definitions for T1/aett.
 <std.png, id=2, 458.46281pt x 724.95844pt>
 File: std.png Graphic file (type png)
  <use std.png>
-Package pdftex.def Info: std.png used on input line 171.
+Package pdftex.def Info: std.png used on input line 164.
 (pdftex.def)             Requested size: 75.56615pt x 119.50148pt.
 
 
 LaTeX Font Warning: Font shape `T1/aett/bx/n' undefined
-(Font)              using `T1/aett/m/n' instead on input line 184.
+(Font)              using `T1/aett/m/n' instead on input line 176.
 
 [1{/usr/local/texlive/2013/texmf-var/fonts/map/pdftex/updmap/pdftex.map}
 
 
  <./lamport.png> <./std.png>]
-Overfull \hbox (7.87407pt too wide) in paragraph at lines 233--234
+Overfull \hbox (7.87407pt too wide) in paragraph at lines 224--225
 []\T1/aer/m/n/9 One main chal-lenge we en-coun-tered was to make two threads
  []
 
-(./report.bbl) [2] (./report.aux)
+(./report.bbl [2]) [3
+
+] (./report.aux)
 
 LaTeX Font Warning: Some font shapes were not available, defaults substituted.
 
  ) 
 Here is how much of TeX's memory you used:
- 5165 strings out of 493315
- 69460 string characters out of 6137903
- 214326 words of memory out of 5000000
- 8486 multiletter control sequences out of 15000+600000
+ 5162 strings out of 493315
+ 69435 string characters out of 6137903
+ 209326 words of memory out of 5000000
+ 8483 multiletter control sequences out of 15000+600000
  52292 words of font info for 73 fonts, out of 8000000 for 9000
  957 hyphenation exceptions out of 8191
- 41i,11n,40p,725b,1695s stack positions out of 5000i,500n,10000p,200000b,80000s
+ 41i,11n,40p,933b,1695s stack positions out of 5000i,500n,10000p,200000b,80000s
 {/usr/local/texlive/2013/texmf-dist/fonts/enc/dvips/base/8r.enc}</usr/local/t
 exlive/2013/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx9.pfb></usr/local/tex
 live/2013/texmf-dist/fonts/type1/public/amsfonts/cm/cmr5.pfb></usr/local/texliv
@@ -433,10 +435,10 @@ xmf-dist/fonts/type1/public/amsfonts/cm/cmtt9.pfb></usr/local/texlive/2013/texm
 f-dist/fonts/type1/urw/helvetic/uhvb8a.pfb></usr/local/texlive/2013/texmf-dist/
 fonts/type1/urw/helvetic/uhvr8a.pfb></usr/local/texlive/2013/texmf-dist/fonts/t
 ype1/urw/times/utmb8a.pfb>
-Output written on report.pdf (2 pages, 555375 bytes).
+Output written on report.pdf (3 pages, 551501 bytes).
 PDF statistics:
- 54 PDF objects out of 1000 (max. 8388607)
- 37 compressed objects within 1 object stream
+ 57 PDF objects out of 1000 (max. 8388607)
+ 39 compressed objects within 1 object stream
  0 named destinations out of 1000 (max. 500000)
  11 words of extra memory for PDF output out of 10000 (max. 10000000)
 
