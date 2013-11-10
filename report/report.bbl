@@ -1,0 +1,39 @@
+\begin{thebibliography}{1}
+
+\bibitem{androidAsyncTask}
+{Android AsyncTask}.
+\newblock
+  \url{http://vslab.inf.ethz.ch:8081/sunspots/Spot1/sensors/temperature}.
+\newblock Accessed on 10 Nov 2013.
+
+\bibitem{androidHandler}
+{Handler object in Android}.
+\newblock
+  \url{http://vslab.inf.ethz.ch:8081/sunspots/Spot1/sensors/temperature}.
+\newblock Accessed on 10 Nov 2013.
+
+\bibitem{devServices}
+{Services: Sending Notifications to the User}.
+\newblock
+  \url{http://developer.android.com/guide/components/services.html#Notifications}.
+\newblock Accessed on 29 Aug 2013.
+
+\bibitem{hello}
+E.~Burnette.
+\newblock {\em Hello, Android: introducing Google's mobile development
+  platform}.
+\newblock Pragmatic Bookshelf, 3 edition, 2010.
+
+\bibitem{RFC2616}
+R.~Fielding, J.~Gettys, J.~Mogul, H.~Frystyk, L.~Masinter, P.~Leach, and
+  T.~Berners-Lee.
+\newblock {Hypertext Transfer Protocol -- HTTP/1.1}.
+\newblock RFC 2616, 1999.
+
+\bibitem{REST}
+R.~T. Fielding.
+\newblock {\em {Architectural Styles and the Design of Network-based Software
+  Architectures}}.
+\newblock Phd thesis, UC Irvine, 2000.
+
+\end{thebibliography}

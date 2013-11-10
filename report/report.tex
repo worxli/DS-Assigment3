@@ -1,3 +1,5 @@
+
+
 % This is based on "sig-alternate.tex" V1.9 April 2009
 % This file should be compiled with V2.4 of "sig-alternate.cls" April 2009
 %
@@ -126,7 +128,7 @@
 \maketitle
 
 \begin{abstract}
-For the implementation of this assignment we made use of the two lab provided HTC desire number 25 and 37. We were able to implement both assignments and to our best knowledge both chats are working flawlessly. 
+For the implementation of this assignment we made use of the two lab provided HTC desire number 25 and 37 and a private Samsung Galaxy Tab 2. We were able to implement both assignments and to our best knowledge both chats are working flawlessly. 
 %Concisely state (i) which Android device you used, (ii) which tasks you completed and which are working correctly or limited, and (iii) what your specific enhancements are.
 \end{abstract}
 
@@ -136,7 +138,7 @@ For the implementation of this assignment we made use of the two lab provided HT
 \begin{itemize}
   \item Please give an overview of the usage of the Lamport times and of the Vector Clocks.
   \item %Also write about your architecture to handle the UDP communication.
-  We used asynchronous tasks to register, unregister, get clients/server information from the server and sending chat messages. So these tasks can send and possibly also receive packets. For receiving information from the server, e.g chat messages and logout information about other clients we have implemented a background thread which has only the purpose to listen for incoming UDP packets.
+  We used asynchronous tasks to register, unregister, get clients/server information from the server and sending chat messages. So these tasks can send and possibly also receive packets. For receiving information from the server, e.g chat messages and logout information about other clients we have implemented a background thread which has only the purpose to listen for incoming UDP packets. 
 \end{itemize}
 
 Use references such as books \cite{hello}, papers and theses \cite{REST}, or specifications \cite{RFC2616} whenever available.
@@ -148,23 +150,66 @@ Cite every source you used throughout the assignment.
 
 \begin{figure}
     \centering
-    \subfigure[Lamport Chat]{
-        \includegraphics[height=4.2cm]{lamport.png}
-        \lfig{axis}   
-    }
+    \includegraphics[height=4.2cm]{lamport.png}
+    \lfig{axis}   
     \caption{Lamport Chat overview}
 \end{figure}
 \begin{itemize}
   
-  \item Describe shortly, how you designed your application to implement this task. Include 1-2 screenshots of your app.
-  
-  \item Highlight the backbone of your implementation (methods) and add a state transition diagram to describe the logic behind the handling of communication with the server. Especially, describe how you designed the \texttt{isDeliverable(...)} method.
-  \item Describe the main problem encountered in this task and give an overview of your solution.
+  %\item Describe shortly, how you designed your application to implement this task. Include 1-2 screenshots of your app.
+  \item The UI thread has a field called \texttt{lamportTime} which stores the current Timestamps for this process. When recieving a new message the Lamport Timestamp is updated according to the algorithm presented in the lecture. When sending a new message the current Lamport Timestamp of the process is attached to the JSON object and then sent to the chat server.
+  %\item Highlight the backbone of your implementation (methods) and add a state transition diagram to describe the logic behind the handling of communication with the server. Especially, describe how you designed the \texttt{isDeliverable(...)} method.
+  \item For all commands that are being sent to the chat server we provide a AsyncTask which then communicates in the background with the chat server. This AsyncTask \cite{androidAsyncTask} is reserved for all outgoing UDP packets. On the other side we implemented functionality to only recieve UDP packets. This class (providing the mentioned functionality) is running in a seperate thread and its main goal is to catch all incoming chat messages and the server status. The recieved messages are then sent to the UI thread for displaying them. This is done with the use of an Handler \cite{androidHandler}. For better understanding see the state transition diagram (cf. \rfig{std}).
+  %\item Describe the main problem encountered in this task and give an overview of your solution.
+  \item The main problem was that we first tried to connected to the same UDP Port which is obviously not possible.
 \end{itemize}
+
+\begin{figure}
+    \centering
+    \includegraphics[height=4.2cm]{std.png}
+    \lfig{std}   
+    \caption{State transition diagram}
+\end{figure}
 
 \section{Vector Clocks}
 \begin{itemize}
-  \item Did you reuse elements from Task 2? Highlight the main differences to Task 2.
+  %\item Did you reuse elements from Task 2? Highlight the main differences to Task 2.
+  \item To achieve efficiency we reused the whole code of Task 2. The main differences are that we now implemented Vector clocks and discarded Lamport Timestamps. For this we had do change the handler to parse the recieved JSON to extract and build the vector clock. Another main difference is that we introduced a new class called \texttt{VectorClockComparator} which is able to compare two vector clock timestamps.
+
+\lstset{language=Java,caption={Using AsyncTask},label=asynctask} 
+\begin{lstlisting}
+public class VectorClockComparator implements Comparator<JSONObject> {
+	@Override
+	/**
+     * o1 is before o2 iff both conditions are met:
+     * - each process's clock is less-than-or-equal-to its own clock in other; and
+     * - there is at least one process's clock which is strictly less-than its
+     *   own clock in o2
+     */
+    public int compare(JSONObject o1, JSONObject o2) {
+		int isBefore = 0;
+		
+		// Since we are not guaranteed that both objects have the same indexes computer intersection and compare based on that
+		HashMap<String, Integer> vector1 = MainActivity.vectorClockFromJSON(o1);
+		HashMap<String, Integer> vector2 = MainActivity.vectorClockFromJSON(o2);
+		HashMap<String, Integer> intersection = new HashMap<String, Integer>(vector1);
+		intersection.keySet().retainAll(vector2.keySet());
+		
+		for (String key : intersection.keySet()) {
+			int val1 = vector1.get(key);
+			int val2 = vector2.get(key);
+			
+			if (val1 > val2)
+				return 1;
+			else if (val1 < val2)
+				isBefore = -1;
+			
+		}
+		
+		return isBefore;
+	}
+}
+\end{lstlisting}
   \item Describe how you designed the \texttt{isDeliverable(...)} method.
   \item Describe the main problem encountered in this task and give an overview of your solution.
 \end{itemize}
@@ -172,18 +217,40 @@ Cite every source you used throughout the assignment.
 \section{Discussion}
 Please reply to the following questions.
 \begin{itemize}
-  \item What are the main advantages of using Vector Clocks over Lamport Timestamps?
-  \item When exactly are two Vector Clocks causally dependent?
-  \item We decided in the exercise that we would not let our applications trigger a tick when receiving a message. What would be the implications of ticking on receive?
-  \item Does a clock tick happen before or after the sending of a message. What are the implications of changing this?
-  \item Read and assess the paper Tobias Landes - Dynamic Vector Clocks for Consistent Ordering of Events in Dynamic Distributed Applications3 that gives a good overview on the discussed methods. In particular, which problem of vector clocks is solved in the paper?
+  \item \textbf{What are the main advantages of using Vector Clocks over Lamport Timestamps?} The system of vector clocks is strongly consistent. Thus, by comparing the vector timestamp of two events, we can determine if the events are causally related. This is called the \textit{strong clock consistency condition}. Using only a Lamport Timestamps, only a partial causal ordering can be inferred from the clock (the implication goes only in one way, called the \textit{clock consistency condition}).
+  \item \textbf{When exactly are two Vector Clocks causally dependent?}
+  \item \textbf{Does a clock tick happen before or after the sending of a message. What are the implications of changing this?} We decided that we would not let our applications trigger a tick when receiving a message. What would be the implications of ticking on receive?
+  \item \textbf{Read and assess the paper Tobias Landes - Dynamic Vector Clocks for Consistent Ordering of Events in Dynamic Distributed Applications3 that gives a good overview on the discussed methods. In particular, which problem of vector clocks is solved in the paper?}
 \end{itemize}
 
 
 \section{Conclusion}
 
-Give an overall conclusion that summarizes the main challenges you encountered, your lessons learned and how you divided the work load in your team.
+%Give an overall conclusion that summarizes the main challenges you encountered, your lessons learned and how you divided the work load in your team.
+One main challenge we encountered was to make two threads listening to the same UDP port. We first tried to handle this by sending and retrieving all commands and messages through the same thread. But then we decided to handle this challenge by binding one of the two threads to the current used port rather than just using one thread. We did it this way because then we can seperate between just listening to a UDP port for incoming messages (the chat and status messages) and sending commands to the chat server (such as deregister or sending a message). We think this is a much better design style especially when someone tries to read and understand our code.
 
+To achieve good efficiency we divided the work into three seperate parts. Each team member worked on one part. Because the parts may overlapped we worked sometimes in parallel and sometimes not. The first part consisted of the following tasks
+\begin{itemize}
+  \item Setup up the whole UI and provide each UI element with the related functionality. 
+  \item Setup up an AsyncTask for register / deregister commands as well as for retrieving the server status and a client list.
+  \item Design the basic layout and functionality of the UDP listener thread. The UDP listener is design to be able to communicate with the UI thread because message have to be passed from the UDP listener thread to the UI.
+\end{itemize}
+
+% lukas
+The second part consisted of
+\begin{itemize}
+  \item 1
+  \item 2
+  \item 3
+\end{itemize}
+
+%robin
+Last we had to
+\begin{itemize}
+  \item 1
+  \item 2
+  \item 3
+\end{itemize}
 % The following two commands are all you need in the
 % initial runs of your .tex file to
 % produce the bibliography for the citations in your paper.
